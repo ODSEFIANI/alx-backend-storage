@@ -3,9 +3,23 @@
 redis Exercise
 """
 import redis
-from typing import Callable, Union, Optional
+from typing import Callable, Union, Optional, Any
 import uuid
 from functools import wraps
+
+
+def count_calls(method: Callable) -> Callable:
+    '''count
+    '''
+    key = method.__qualname__
+
+    @wraps(method)
+    def wrapper(self, *args, **kwargs) -> str:
+        """wrapper
+        """
+        self._redis.incr(key)
+        return method(self, *args, **kwargs)
+    return wrapper
 
 
 class Cache:
@@ -47,16 +61,7 @@ class Cache:
             return ""
 
 
-def count_calls(method: Callable) -> Callable:
-    '''count
-    '''
-    key = method.__qualname__
 
-    @wraps(method)
-    def wrapper(self, *args, **kwargs):
-        self._redis.incr(key)
-        return method(self, *args, **kwargs)
-    return wrapper
 
 
 def call_history(method: Callable) -> Callable:
