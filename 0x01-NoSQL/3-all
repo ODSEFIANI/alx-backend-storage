@@ -1,2 +1,2 @@
-// fetch all
+// fetch all "can add pertty()"
 db.school.find()
