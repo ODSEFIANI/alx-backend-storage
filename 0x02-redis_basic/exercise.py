@@ -3,7 +3,7 @@
 redis Exercise
 """
 import redis
-from typing import Callable
+from typing import Callable, Union, Optional
 import uuid
 from functools import wraps
 
@@ -25,22 +25,26 @@ class Cache:
         return key
 
     def get(
-        self, key: str, fct: Optional[Callable] = None
+        self, key: str, fn: Optional[Callable] = None
     ) -> Union[str, bytes, int, float]:
         """Retrieve data from the cache, apply optional function,
         and return the value"""
         value = self._redis.get(key)
-        if fct:
-            value = fct(value)
+        if fn:
+            value = fn(value)
         return value
     
     def get_int(self, key: str) -> int:
         """Retrieve data from the cache and convert it to an integer"""
-        return self.get(key, fct=int)
+        return self.get(key, fn=int)
 
     def get_str(self, key: str) -> str:
-        """Retrieve data from the cache and convert it to a string"""
-        return self.get(key, fct=str)
+        """Retrieve binary data from the cache and decode it to a string using UTF-8"""
+        binary_data = self.get(key)
+        if binary_data is not None:
+            return binary_data.decode('utf-8')
+        else:
+            return ""
 
 
 def count_calls(method: Callable) -> Callable:
@@ -93,14 +97,3 @@ def replay(method: Callable):
 
 if __name__ == "__main__":
     pass  # You can add test cases or run the main program here
-cache = Cache()
-
-TEST_CASES = {
-    b"foo": None,
-    123: int,
-    "bar": lambda d: d.decode("utf-8")
-}
-
-for value, fn in TEST_CASES.items():
-    key = cache.store(value)
-    assert cache.get(key, fn=fn) == value
