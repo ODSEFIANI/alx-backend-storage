@@ -24,6 +24,24 @@ class Cache:
         self._redis.set(key, data)
         return key
 
+    def get(
+        self, key: str, fct: Optional[Callable] = None
+    ) -> Union[str, bytes, int, float]:
+        """Retrieve data from the cache, apply optional function,
+        and return the value"""
+        value = self._redis.get(key)
+        if fct:
+            value = fct(value)
+        return value
+    
+    def get_int(self, key: str) -> int:
+        """Retrieve data from the cache and convert it to an integer"""
+        return self.get(key, fct=int)
+
+    def get_str(self, key: str) -> str:
+        """Retrieve data from the cache and convert it to a string"""
+        return self.get(key, fct=str)
+
 
 def count_calls(method: Callable) -> Callable:
     '''count
