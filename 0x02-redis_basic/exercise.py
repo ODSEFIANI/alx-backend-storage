@@ -16,7 +16,7 @@ class Cache:
         '''
         self._redis = redis.Redis()
         self._redis.flushdb()
-
+    @count_calls
     def store(self, data: Union[str, float, bytes, int]) -> str:
         ''' storage
         '''
@@ -94,6 +94,3 @@ def replay(method: Callable):
     for input_args, output in zip(inputs, outputs):
         print(f"{method.__qualname__}{input_args} -> {output}")
 
-
-if __name__ == "__main__":
-    pass  # You can add test cases or run the main program here
