@@ -4,10 +4,11 @@ redis Exercise
 """
 import requests
 import time
+import redis
 from typing import Callable
 
 CACHE_EXPIRATION_SECONDS = 10
-CACHE = {}
+CACHE = redis.StrictRedis(host='localhost', port=6379, db=0)
 
 def cache_with_count(func: Callable) -> Callable:
     """
@@ -34,13 +35,22 @@ def cache_with_count(func: Callable) -> Callable:
         - str: The content of the URL.
         """
         cache_key = f"count:{url}"
-        if cache_key in CACHE and CACHE[cache_key]['expiration'] > time.time():
-            CACHE[cache_key]['count'] += 1
-            return CACHE[url]['content']
+        content_key = f"content:{url}"
+        
+        count = CACHE.get(cache_key)
+        if count is None:
+            count = 1
+        else:
+            count = int(count) + 1
+        CACHE.setex(cache_key, CACHE_EXPIRATION_SECONDS, str(count))
+
+        cached_content = CACHE.get(content_key)
+        if cached_content:
+            return cached_content.decode('utf-8')
 
         result = func(url, *args, **kwargs)
 
-        CACHE[cache_key] = {'count': 1, 'expiration': time.time() + CACHE_EXPIRATION_SECONDS}
+        CACHE.setex(content_key, CACHE_EXPIRATION_SECONDS, result)
 
         return result
 
@@ -80,3 +90,7 @@ if __name__ == "__main__":
     # Access slow URL after cache expiration
     slow_content_after_expire = get_page(slow_url)
     print(f"Slow URL content (after cache expiration): {slow_content_after_expire}")
+
+    # Print count
+    count = CACHE.get(f"count:{slow_url}")
+    print(f"Count for {slow_url}: {count}")
