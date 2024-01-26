@@ -3,12 +3,12 @@
 redis Exercise
 """
 import requests
-import time
 import redis
+from functools import wraps
 from typing import Callable
 
 CACHE_EXPIRATION_SECONDS = 10
-CACHE = redis.StrictRedis(host='localhost', port=6379, db=0)
+cache = redis.Redis()
 
 def cache_with_count(func: Callable) -> Callable:
     """
@@ -22,35 +22,29 @@ def cache_with_count(func: Callable) -> Callable:
     - Callable: Decorated function.
     """
     @wraps(func)
-    def wrapper(url: str, *args, **kwargs) -> str:
+    def wrapper(url: str) -> str:
         """
         Wrapper function that adds caching and counting functionality.
 
         Args:
         - url (str): The URL to access.
-        - *args: Variable positional arguments.
-        - **kwargs: Variable keyword arguments.
 
         Returns:
         - str: The content of the URL.
         """
-        cache_key = f"count:{url}"
-        content_key = f"content:{url}"
-        
-        count = CACHE.get(cache_key)
-        if count is None:
-            count = 1
-        else:
-            count = int(count) + 1
-        CACHE.setex(cache_key, CACHE_EXPIRATION_SECONDS, str(count))
+        count_key = f"count:{url}"
+        result_key = f"result:{url}"
 
-        cached_content = CACHE.get(content_key)
-        if cached_content:
-            return cached_content.decode('utf-8')
+        cache.incr(count_key)
+        result = cache.get(result_key)
 
-        result = func(url, *args, **kwargs)
+        if result:
+            return result.decode('utf-8')
 
-        CACHE.setex(content_key, CACHE_EXPIRATION_SECONDS, result)
+        result = func(url)
+
+        cache.set(count_key, 0)
+        cache.setex(result_key, CACHE_EXPIRATION_SECONDS, result)
 
         return result
 
@@ -67,8 +61,7 @@ def get_page(url: str) -> str:
     Returns:
     - str: The HTML content of the URL.
     """
-    response = requests.get(url)
-    return response.text
+    return requests.get(url).text
 
 if __name__ == "__main__":
     slow_url = "http://slowwly.robertomurray.co.uk/delay/5000/url/http://www.google.com"
@@ -92,5 +85,5 @@ if __name__ == "__main__":
     print(f"Slow URL content (after cache expiration): {slow_content_after_expire}")
 
     # Print count
-    count = CACHE.get(f"count:{slow_url}")
+    count = cache.get(f"count:{slow_url}")
     print(f"Count for {slow_url}: {count}")
