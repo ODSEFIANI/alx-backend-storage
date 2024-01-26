@@ -4,11 +4,13 @@ redis Exercise
 """
 import requests
 import redis
+import time
 from functools import wraps
 from typing import Callable
 
 CACHE_EXPIRATION_SECONDS = 10
 cache = redis.Redis()
+
 
 def cache_with_count(func: Callable) -> Callable:
     """
@@ -50,6 +52,7 @@ def cache_with_count(func: Callable) -> Callable:
 
     return wrapper
 
+
 @cache_with_count
 def get_page(url: str) -> str:
     """
@@ -63,8 +66,10 @@ def get_page(url: str) -> str:
     """
     return requests.get(url).text
 
+
 if __name__ == "__main__":
-    slow_url = "http://slowwly.robertomurray.co.uk/delay/5000/url/http://www.google.com"
+    slow_url = "http://slowwly.robertomurray.co.uk/delay/5000/url/http:\
+    //www.google.com"
     fast_url = "http://www.google.com"
 
     # Access slow URL multiple times to observe caching and counting
@@ -82,7 +87,8 @@ if __name__ == "__main__":
 
     # Access slow URL after cache expiration
     slow_content_after_expire = get_page(slow_url)
-    print(f"Slow URL content (after cache expiration): {slow_content_after_expire}")
+    print(f"Slow URL content\
+    (after cache expiration): {slow_content_after_expire}")
 
     # Print count
     count = cache.get(f"count:{slow_url}")
